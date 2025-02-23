@@ -9,7 +9,7 @@ app.use(express.json()); // for parsing application/json
 
 // Configure Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // Make sure you have GEMINI_API_KEY in your .env file
-const model = genAI.geminiPro(); // or use gemini-pro-vision for multimodal if needed
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 app.post('/api/chat', async (req, res) => {
     const userMessage = req.body.message;
