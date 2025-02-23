@@ -12,9 +12,7 @@ app.use(express.static('public'));
 const apiKey = 'AIzaSyDStcNe3GZcGCdvV3wJAlM9kEzOfJnX0qQ';
 const genAI = new GoogleGenerativeAI(apiKey);
 
-const model = genAI.getGenerativeModel({
-    model: "tunedModels/periodpal-v001-1wlehidxwo3m",
-});
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 const generationConfig = {
     temperature: 1,
