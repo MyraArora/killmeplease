@@ -1,113 +1,249 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini Chatbot</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* Your existing styles remain the same */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        body {
+            background-color: #FFF9F4;
+            color: #4A2C2A;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(74, 44, 42, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(74, 44, 42, 0.1);
+            background: linear-gradient(135deg, #ff61a0 0%, #ff9924 100%);
+            border-radius: 20px 20px 0 0;
+            color: white;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .bot-message {
+            background-color: #FFF9F4;
+            align-self: flex-start;
+            color: #4A2C2A;
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #ff61a0 0%, #ff9924 100%);
+            color: white;
+            align-self: flex-end;
+        }
+
+        .chat-input {
+            padding: 20px;
+            border-top: 1px solid rgba(74, 44, 42, 0.1);
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid rgba(74, 44, 42, 0.2);
+            border-radius: 24px;
+            font-size: 14px;
+            color: #4A2C2A;
+            background: #FFF9F4;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #ff61a0;
+        }
+
+        .chat-input button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #ff61a0 0%, #ff9924 100%);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .chat-input button:hover {
+            opacity: 0.9;
+        }
+
+        .chat-input button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background-color: #FFF9F4;
+            padding: 8px 16px;
+            border-radius: 16px;
+            color: #4A2C2A;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <h2>PeriodPal Chat</h2>
+            <h1>PeriodPal</h1>
         </div>
-        <div id="error-container"></div>
-        <div class="chat-messages" id="chat-messages">
+        <div class="chat-messages">
             <div class="message bot-message">
-                <div class="message-content">
-                    Hello! I'm PeriodPal. How can I help you today?
-                </div>
+                Hi! I'm your PeriodPal. How can I help you today? 🌸
             </div>
+            <div class="typing-indicator">PeriodPal is typing...</div>
         </div>
-        <div id="status" class="status-indicator"></div>
-        <div class="input-area">
-            <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off">
-            <button id="send-button">Send</button>
+        <div class="chat-input">
+            <input type="text" placeholder="Type your message..." id="messageInput">
+            <button onclick="sendMessage()" id="sendButton">Send</button>
         </div>
     </div>
 
     <script>
-        const chatMessages = document.getElementById('chat-messages');
-        const userInput = document.getElementById('user-input');
-        const sendButton = document.getElementById('send-button');
-        const errorContainer = document.getElementById('error-container');
-        const statusIndicator = document.getElementById('status');
+        let chatHistory = [];
+        const messagesContainer = document.querySelector('.chat-messages');
+        const input = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.querySelector('.typing-indicator');
 
-        function showError(message) {
-            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
-        }
-
-        function setStatus(message) {
-            statusIndicator.textContent = message;
-        }
-
-        function addMessage(content, isUser = false) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+        async function sendMessage() {
+            const message = input.value.trim();
             
-            const messageContent = document.createElement('div');
-            messageContent.className = 'message-content';
-            messageContent.textContent = content;
-            messageDiv.appendChild(messageContent);
+            if (message) {
+                // Disable input and button while processing
+                input.disabled = true;
+                sendButton.disabled = true;
 
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+                // Add user message to UI
+                const userMessage = document.createElement('div');
+                userMessage.className = 'message user-message';
+                userMessage.textContent = message;
+                messagesContainer.appendChild(userMessage);
 
-        async function sendMessage(message) {
-            try {
-                setStatus('Sending message...');
-                errorContainer.innerHTML = '';
+                // Show typing indicator
+                typingIndicator.style.display = 'block';
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-                const response = await fetch('http://localhost:3000/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
+                try {
+                    // Update chat history with the new user message
+                    chatHistory.push({
+                        role: "user",
+                        parts: [{ text: message }]
+                    });
+
+                    // Prepare request body in Gemini format
+                    const requestBody = {
                         contents: [{
                             parts: [{
                                 text: message
                             }]
-                        }]
-                    })
-                });
+                        }],
+                        history: chatHistory
+                    };
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.details || 'Server error');
+                    // Send request to your Express server
+                    const response = await fetch('http://localhost:3000/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    const data = await response.json();
+                    
+                    // Hide typing indicator
+                    typingIndicator.style.display = 'none';
+
+                    // Add bot response to UI
+                    const botMessage = document.createElement('div');
+                    botMessage.className = 'message bot-message';
+                    botMessage.textContent = data.candidates[0].content.parts[0].text;
+                    messagesContainer.appendChild(botMessage);
+
+                    // Update chat history with bot response
+                    chatHistory.push({
+                        role: "model",
+                        parts: [{ text: data.candidates[0].content.parts[0].text }]
+                    });
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    
+                    // Hide typing indicator
+                    typingIndicator.style.display = 'none';
+
+                    // Show error message in chat
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'message bot-message';
+                    errorMessage.textContent = "Sorry, I'm having trouble connecting. Please try again.";
+                    messagesContainer.appendChild(errorMessage);
                 }
 
-                const data = await response.json();
-                setStatus('');
+                // Re-enable input and button
+                input.disabled = false;
+                sendButton.disabled = false;
+                input.value = '';
+                input.focus();
                 
-                if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-                    addMessage(data.candidates[0].content.parts[0].text, false);
-                } else {
-                    throw new Error('Invalid response format from server');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                setStatus('');
-                showError(`Error: ${error.message}`);
+                // Scroll to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         }
 
-        function handleUserInput() {
-            const message = userInput.value.trim();
-            if (message) {
-                addMessage(message, true);
-                userInput.value = '';
-                sendMessage(message);
-            }
-        }
-
-        sendButton.addEventListener('click', handleUserInput);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                handleUserInput();
+        // Allow Enter key to send message
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !input.disabled) {
+                sendMessage();
             }
         });
     </script>
