@@ -1,36 +1,33 @@
 const express = require('express');
-const cors = require('cors');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+require('dotenv').config(); // Load environment variables from .env file
 
 const app = express();
 const port = 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+app.use(express.json()); // for parsing application/json
 
-// Initialize Gemini exactly as in docs
-const genAI = new GoogleGenerativeAI("AIzaSyDStcNe3GZcGCdvV3wJAlM9kEzOfJnX0qQ");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// Configure Gemini API
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // Make sure you have GEMINI_API_KEY in your .env file
+const model = genAI.geminiPro(); // or use gemini-pro-vision for multimodal if needed
 
 app.post('/api/chat', async (req, res) => {
-    try {
-        // Get message from request
-        const prompt = req.body.message;
-        
-        // Generate content exactly as in docs
-        const result = await model.generateContent(prompt);
-        const response = await result.response.text();
-        
-        // Send response
-        res.json({ response: response });
+    const userMessage = req.body.message;
 
+    if (!userMessage) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
+    try {
+        const result = await model.generateContent(userMessage);
+        const responseText = result.response.text();
+        res.json({ response: responseText });
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: error.message });
+        console.error("Gemini API Error:", error);
+        res.status(500).json({ error: 'Failed to get response from Gemini API' });
     }
 });
 
 app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+    console.log(`Server listening on port http://localhost:${port}`);
 });
