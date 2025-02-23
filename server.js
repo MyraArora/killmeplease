@@ -5,65 +5,64 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 const port = 3000;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-const apiKey = 'AIzaSyDStcNe3GZcGCdvV3wJAlM9kEzOfJnX0qQ';
-const genAI = new GoogleGenerativeAI(apiKey);
-
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI('AIzaSyDStcNe3GZcGCdvV3wJAlM9kEzOfJnX0qQ');
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-const generationConfig = {
-    temperature: 1,
-    topP: 0.95,
-    topK: 64,
-    maxOutputTokens: 8192,
-    responseMimeType: "text/plain",
-};
-
+// Chat endpoint
 app.post('/api/chat', async (req, res) => {
     try {
-        const chatSession = model.startChat({
-            generationConfig,
-            history: req.body.history || [],
+        // Start a new chat
+        const chat = model.startChat({
+            history: [],
+            generationConfig: {
+                maxOutputTokens: 8192,
+            },
         });
 
-        // Extract message from the Gemini-style request format
-        let userMessage;
-        if (req.body.contents && Array.isArray(req.body.contents)) {
-            userMessage = req.body.contents[0]?.parts[0]?.text;
-        } else {
-            userMessage = req.body.message;
-        }
-
-        if (!userMessage) {
-            throw new Error('No message content provided');
-        }
-
-        const result = await chatSession.sendMessage(userMessage);
-        const responseText = await result.response.text();
+        // Get message from request body
+        const userMessage = req.body.contents?.[0]?.parts?.[0]?.text;
         
-        // Format response to match Gemini API format
+        if (!userMessage) {
+            throw new Error('No message provided');
+        }
+
+        // Get response from Gemini
+        const result = await chat.sendMessage(userMessage);
+        const response = await result.response;
+        const text = await response.text();
+
+        // Send response back to client
         res.json({
             candidates: [{
                 content: {
                     parts: [{
-                        text: responseText
+                        text: text
                     }]
                 }
             }]
         });
+
     } catch (error) {
-        console.error('Error details:', error);
-        res.status(500).json({ 
-            error: "Server error",
-            details: error.toString(),
-            stack: error.stack 
+        console.error('Server Error:', error);
+        res.status(500).json({
+            error: 'Server Error',
+            message: error.message
         });
     }
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
+// Start server
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
